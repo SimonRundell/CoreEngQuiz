@@ -79,6 +79,12 @@ a          { color: var(--cyan); }
 
 .header-bar h1 { font-size: 1.1rem; }
 
+.header-logo {
+    height: 100px;
+    width: auto;
+    margin-right: 1rem;
+}
+
 .header-actions { display: flex; gap: 0.5rem; align-items: center; }
 
 .theme-btn {

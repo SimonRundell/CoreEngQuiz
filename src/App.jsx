@@ -78,8 +78,10 @@ export default function App() {
     return (
         <div className={`app-root${dark ? ' dark' : ''}`}>
             <header className="app-header">
+                
                 <CountdownBar />
                 <div className="header-bar">
+                    <img src="/favicon.png" alt="T Level Core Engineering Logo" className="header-logo" />
                     <h1>T Level Core Engineering Quiz</h1>
                     <div className="header-actions">
                         <button className="theme-btn" onClick={toggleTheme} type="button" aria-label="Toggle theme">
