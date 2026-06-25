@@ -1,0 +1,12 @@
+# React Router SPA — rewrite all non-file, non-API requests to index.html
+Options -MultiViews
+RewriteEngine On
+
+# Don't rewrite actual files or directories
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Don't rewrite API calls
+RewriteCond %{REQUEST_URI} !^/api/
+
+RewriteRule ^ index.html [L]
