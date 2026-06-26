@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import client from '../../api/client';
 
 export default function Dashboard() {
@@ -28,20 +28,12 @@ export default function Dashboard() {
         });
     }, [navigate]);
 
-    async function logout() {
-        await client.post('/admin/logout.php').catch(() => {});
-        navigate('/admin/login');
-    }
-
     const totalQ   = topics.reduce((s, t) => s + Number(t.question_count), 0);
     const flagCount = flags.length;
 
     return (
         <div className="admin-dashboard">
-            <div className="admin-header">
-                <h1>Admin Dashboard</h1>
-                <button onClick={logout} type="button" className="logout-btn">Log out</button>
-            </div>
+            <h1>Admin Dashboard</h1>
 
             {error && <p className="form-error">{error}</p>}
 
@@ -59,13 +51,6 @@ export default function Dashboard() {
                     <span className="stat-label">Flagged</span>
                 </div>
             </div>
-
-            <nav className="admin-nav">
-                <Link to="/admin/questions">Question Editor</Link>
-                <Link to="/admin/topics">Topic Manager</Link>
-                <Link to="/admin/flags">Flag Review {flagCount > 0 && <span className="badge">{flagCount}</span>}</Link>
-                <Link to="/admin/config">Config / Exam Dates</Link>
-            </nav>
 
             <section>
                 <h2>Questions per Topic</h2>

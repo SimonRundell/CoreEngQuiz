@@ -4,6 +4,10 @@
  * Allows creating, editing and soft-deleting questions within a topic.
  * Includes a live preview panel showing the question as students see it.
  *
+ * The four long-text fields (question_text, formula_hint, formula_note,
+ * explanation) use TipTap rich-text dialogs so admins can apply bold,
+ * super/subscript, lists, etc.
+ *
  * @module pages/admin/QuestionEditor
  * @license CC BY-NC-SA 4.0
  */
@@ -11,6 +15,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate }         from 'react-router-dom';
 import client                  from '../../api/client';
+import RichTextDialog          from '../../components/RichTextDialog';
+import RichHtml                from '../../components/RichHtml';
 
 const ANSWER_LABELS = ['A', 'B', 'C', 'D'];
 
@@ -28,6 +34,50 @@ const BLANK = {
     explanation:   '',
     active:        1,
 };
+
+/** Strips HTML tags and entity refs; used for validation and list previews. */
+function stripHtml(html) {
+    return (html || '').replace(/<[^>]*>/g, '').replace(/&[^;]+;/g, ' ').trim();
+}
+
+/**
+ * Displays the current HTML value for a rich-text field alongside an edit
+ * button that opens a RichTextDialog.
+ *
+ * @param {{ label: string, value: string, onChange: (html: string) => void }} props
+ */
+function RichField({ label, value, onChange }) {
+    const [open, setOpen] = useState(false);
+    const hasContent = !!stripHtml(value);
+
+    return (
+        <div className="rich-field">
+            <div className="rich-field-header">
+                <span className="rich-field-label">{label}</span>
+                <button
+                    type="button"
+                    className="btn-edit"
+                    onClick={() => setOpen(true)}
+                    aria-label={`Edit ${label}`}
+                >
+                    &#9998;
+                </button>
+            </div>
+            <div
+                className={'rich-preview' + (!hasContent ? ' rich-preview--empty' : '')}
+                dangerouslySetInnerHTML={{ __html: value || '<span class="rich-placeholder">(empty — click ✏ to edit)</span>' }}
+            />
+            {open && (
+                <RichTextDialog
+                    label={label}
+                    value={value}
+                    onSave={(html) => { onChange(html); setOpen(false); }}
+                    onClose={() => setOpen(false)}
+                />
+            )}
+        </div>
+    );
+}
 
 export default function QuestionEditor() {
     const [topics,    setTopics]    = useState([]);
@@ -75,8 +125,8 @@ export default function QuestionEditor() {
     }
 
     function validate() {
-        if (!form.topic_id)      return 'Select a topic';
-        if (!form.question_text.trim()) return 'Question text required';
+        if (!form.topic_id)              return 'Select a topic';
+        if (!stripHtml(form.question_text)) return 'Question text required';
         if (!form.option_a.trim() || !form.option_b.trim() ||
             !form.option_c.trim() || !form.option_d.trim()) return 'All four options required';
         if (form.correct_index === '' || form.correct_index === null) return 'Select the correct answer';
@@ -89,15 +139,15 @@ export default function QuestionEditor() {
 
         const payload = {
             topic_id:      Number(form.topic_id),
-            question_text: form.question_text.trim(),
+            question_text: form.question_text,
             option_a:      form.option_a.trim(),
             option_b:      form.option_b.trim(),
             option_c:      form.option_c.trim(),
             option_d:      form.option_d.trim(),
             correct_index: Number(form.correct_index),
-            formula_hint:  form.formula_hint.trim(),
-            formula_note:  form.formula_note.trim(),
-            explanation:   form.explanation.trim(),
+            formula_hint:  form.formula_hint,
+            formula_note:  form.formula_note,
+            explanation:   form.explanation,
             active:        form.active,
         };
 
@@ -109,7 +159,6 @@ export default function QuestionEditor() {
             }
             setSuccess('Saved.');
             setForm({ ...BLANK, topic_id: form.topic_id });
-            // Refresh list
             client.get('/admin/questions.php', { params: { topic_id: form.topic_id } })
                 .then((r) => setQuestions(r.data));
         } catch (e) {
@@ -149,12 +198,13 @@ export default function QuestionEditor() {
                         </select>
                     </label>
 
-                    <label>Question text
-                        <textarea rows={3} value={form.question_text}
-                            onChange={(e) => set('question_text', e.target.value)} />
-                    </label>
+                    <RichField
+                        label="Question text"
+                        value={form.question_text}
+                        onChange={(html) => set('question_text', html)}
+                    />
 
-                    {['a', 'b', 'c', 'd'].map((letter, i) => (
+                    {['a', 'b', 'c', 'd'].map((letter) => (
                         <label key={letter}>Option {letter.toUpperCase()}
                             <input type="text" value={form[`option_${letter}`]}
                                 onChange={(e) => set(`option_${letter}`, e.target.value)} />
@@ -173,20 +223,23 @@ export default function QuestionEditor() {
                         ))}
                     </fieldset>
 
-                    <label>Formula hint (optional)
-                        <input type="text" value={form.formula_hint}
-                            onChange={(e) => set('formula_hint', e.target.value)} />
-                    </label>
+                    <RichField
+                        label="Formula hint (optional)"
+                        value={form.formula_hint}
+                        onChange={(html) => set('formula_hint', html)}
+                    />
 
-                    <label>Formula note (optional)
-                        <input type="text" value={form.formula_note}
-                            onChange={(e) => set('formula_note', e.target.value)} />
-                    </label>
+                    <RichField
+                        label="Formula note (optional)"
+                        value={form.formula_note}
+                        onChange={(html) => set('formula_note', html)}
+                    />
 
-                    <label>Explanation (optional)
-                        <textarea rows={2} value={form.explanation}
-                            onChange={(e) => set('explanation', e.target.value)} />
-                    </label>
+                    <RichField
+                        label="Explanation (optional)"
+                        value={form.explanation}
+                        onChange={(html) => set('explanation', html)}
+                    />
 
                     {error   && <p className="form-error">{error}</p>}
                     {success && <p className="form-success">{success}</p>}
@@ -207,20 +260,26 @@ export default function QuestionEditor() {
                 {showPreview && (
                     <div className="editor-preview">
                         <h3>Preview</h3>
-                        {form.formula_hint && (
+                        {stripHtml(form.formula_hint) && (
                             <div className="formula-box">
-                                <strong>Formula: </strong>{form.formula_hint}
-                                {form.formula_note && <span> — {form.formula_note}</span>}
+                                <span className="formula-kicker">Formula</span>
+                                <RichHtml html={form.formula_hint} />
+                                {stripHtml(form.formula_note) && (
+                                    <>
+                                        <span className="formula-kicker">Note</span>
+                                        <RichHtml html={form.formula_note} />
+                                    </>
+                                )}
                             </div>
                         )}
-                        <p className="question-text">{form.question_text || '(Question text)'}</p>
+                        <RichHtml html={form.question_text || '<em>(Question text)</em>'} className="question-text" />
                         {opts.map((opt, i) => (
                             <div key={i} className={`option-btn preview-opt ${Number(form.correct_index) === i ? 'correct' : ''}`}>
                                 <span className="option-label">{ANSWER_LABELS[i]}</span>
                                 {opt || `(Option ${ANSWER_LABELS[i]})`}
                             </div>
                         ))}
-                        {form.explanation && <p className="explanation">{form.explanation}</p>}
+                        {stripHtml(form.explanation) && <RichHtml html={form.explanation} className="explanation" />}
                     </div>
                 )}
             </div>
@@ -232,14 +291,17 @@ export default function QuestionEditor() {
                     <table className="admin-table">
                         <thead><tr><th>ID</th><th>Question</th><th>Active</th></tr></thead>
                         <tbody>
-                            {questions.map((q) => (
-                                <tr key={q.id} className={!q.active ? 'inactive-row' : ''}
-                                    onClick={() => loadQuestion(q)} style={{ cursor: 'pointer' }}>
-                                    <td>{q.id}</td>
-                                    <td>{q.question_text.slice(0, 80)}{q.question_text.length > 80 ? '…' : ''}</td>
-                                    <td>{q.active ? 'Yes' : 'No'}</td>
-                                </tr>
-                            ))}
+                            {questions.map((q) => {
+                                const plain = stripHtml(q.question_text);
+                                return (
+                                    <tr key={q.id} className={!q.active ? 'inactive-row' : ''}
+                                        onClick={() => loadQuestion(q)} style={{ cursor: 'pointer' }}>
+                                        <td>{q.id}</td>
+                                        <td>{plain.length > 80 ? plain.slice(0, 80) + '…' : plain}</td>
+                                        <td>{q.active ? 'Yes' : 'No'}</td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </section>

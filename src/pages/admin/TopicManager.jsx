@@ -1,8 +1,9 @@
 /**
  * Admin topic management page.
  *
- * Allows editing topic title, paper assignment, sort order and active status.
- * Also supports adding new topics.
+ * Topics are reordered by dragging the handle in the first column.
+ * The drag-end handler persists the new sort_order values via PATCH.
+ * Sort order is never shown as an editable field.
  *
  * @module pages/admin/TopicManager
  * @license CC BY-NC-SA 4.0
@@ -10,16 +11,136 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable,
+    arrayMove,
+} from '@dnd-kit/sortable';
+import { CSS }                    from '@dnd-kit/utilities';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import client from '../../api/client';
 
-const BLANK = { code: '', title: '', paper: 1, sort_order: 0 };
+const BLANK = { code: '', title: '', paper: 1 };
+
+/**
+ * A single sortable table row.
+ * In edit mode the drag handle is disabled; otherwise listeners are
+ * attached only to the handle so clicking other cells never triggers a drag.
+ *
+ * @param {{ topic, editing, onEditStart, onSave, onCancel, updateField }} props
+ */
+function SortableRow({ topic, editing, onEditStart, onSave, onCancel, updateField }) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: topic.id });
+
+    const style = {
+        transform:  CSS.Transform.toString(transform),
+        transition,
+        opacity:    isDragging ? 0.45 : 1,
+        zIndex:     isDragging ? 1    : undefined,
+        position:   'relative',
+    };
+
+    if (editing) {
+        return (
+            <tr ref={setNodeRef} style={style}>
+                <td className="drag-handle-cell">
+                    <span className="drag-handle drag-handle--disabled" aria-hidden="true">⠿</span>
+                </td>
+                <td>{topic.code}</td>
+                <td>
+                    <input
+                        className="tbl-input"
+                        value={topic.title}
+                        onChange={(e) => updateField(topic.id, 'title', e.target.value)}
+                    />
+                </td>
+                <td>
+                    <select className="tbl-select" value={topic.paper}
+                        onChange={(e) => updateField(topic.id, 'paper', e.target.value)}>
+                        <option value={1}>1</option>
+                        <option value={2}>2</option>
+                    </select>
+                </td>
+                <td>
+                    <select className="tbl-select" value={topic.active}
+                        onChange={(e) => updateField(topic.id, 'active', e.target.value)}>
+                        <option value={1}>Yes</option>
+                        <option value={0}>No</option>
+                    </select>
+                </td>
+                <td>{topic.question_count}</td>
+                <td className="topic-actions">
+                    <button type="button" className="btn-save" onClick={() => onSave(topic)}>Save</button>
+                    <button type="button" className="btn-cancel" onClick={onCancel}>Cancel</button>
+                </td>
+            </tr>
+        );
+    }
+
+    return (
+        <tr
+            ref={setNodeRef}
+            style={style}
+            className={!topic.active ? 'inactive-row' : ''}
+            {...attributes}
+        >
+            <td className="drag-handle-cell">
+                <button
+                    type="button"
+                    className="drag-handle"
+                    {...listeners}
+                    aria-label="Drag to reorder"
+                >
+                    ⠿
+                </button>
+            </td>
+            <td>{topic.code}</td>
+            <td>{topic.title}</td>
+            <td>{topic.paper}</td>
+            <td>{topic.active ? 'Yes' : 'No'}</td>
+            <td>{topic.question_count}</td>
+            <td className="topic-actions">
+                <button
+                    type="button"
+                    className="btn-edit"
+                    onClick={() => onEditStart(topic.id)}
+                    aria-label="Edit topic"
+                >
+                    &#9998;
+                </button>
+            </td>
+        </tr>
+    );
+}
 
 export default function TopicManager() {
     const [topics,  setTopics]  = useState([]);
-    const [editing, setEditing] = useState(null);  // topic id being edited
+    const [editing, setEditing] = useState(null);
     const [newForm, setNewForm] = useState(BLANK);
     const [error,   setError]   = useState('');
     const navigate = useNavigate();
+
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+        useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    );
 
     function load() {
         client.get('/admin/topics.php')
@@ -43,10 +164,9 @@ export default function TopicManager() {
     async function createTopic() {
         if (!newForm.code || !newForm.title) { setError('Code and title required'); return; }
         await client.post('/admin/topics.php', {
-            code:       newForm.code,
-            title:      newForm.title,
-            paper:      Number(newForm.paper),
-            sort_order: Number(newForm.sort_order),
+            code:  newForm.code,
+            title: newForm.title,
+            paper: Number(newForm.paper),
         }).catch(() => setError('Create failed'));
         setNewForm(BLANK);
         load();
@@ -56,70 +176,79 @@ export default function TopicManager() {
         setTopics((ts) => ts.map((t) => t.id === id ? { ...t, [field]: value } : t));
     }
 
+    async function handleDragEnd({ active, over }) {
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = topics.findIndex((t) => t.id === active.id);
+        const newIndex = topics.findIndex((t) => t.id === over.id);
+        const reordered = arrayMove(topics, oldIndex, newIndex);
+
+        setTopics(reordered);
+
+        const order = reordered.map((t, i) => ({ id: t.id, sort_order: i + 1 }));
+        try {
+            await client.patch('/admin/topics.php', { order });
+        } catch {
+            setError('Reorder save failed — reloading');
+            load();
+        }
+    }
+
     return (
         <div className="admin-topics">
             <h1>Topic Manager</h1>
             {error && <p className="form-error">{error}</p>}
 
-            <table className="admin-table">
-                <thead>
-                    <tr>
-                        <th>Code</th><th>Title</th><th>Paper</th>
-                        <th>Sort</th><th>Active</th><th>Questions</th><th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {topics.map((t) => editing === t.id ? (
-                        <tr key={t.id}>
-                            <td>{t.code}</td>
-                            <td><input value={t.title} onChange={(e) => updateField(t.id, 'title', e.target.value)} /></td>
-                            <td>
-                                <select value={t.paper} onChange={(e) => updateField(t.id, 'paper', e.target.value)}>
-                                    <option value={1}>1</option>
-                                    <option value={2}>2</option>
-                                </select>
-                            </td>
-                            <td><input type="number" value={t.sort_order} style={{ width: 50 }}
-                                onChange={(e) => updateField(t.id, 'sort_order', e.target.value)} /></td>
-                            <td>
-                                <select value={t.active} onChange={(e) => updateField(t.id, 'active', e.target.value)}>
-                                    <option value={1}>Yes</option>
-                                    <option value={0}>No</option>
-                                </select>
-                            </td>
-                            <td>{t.question_count}</td>
-                            <td>
-                                <button type="button" onClick={() => saveEdit(t)}>Save</button>
-                                <button type="button" onClick={() => setEditing(null)}>Cancel</button>
-                            </td>
+            <DndContext
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                modifiers={[restrictToVerticalAxis]}
+                onDragEnd={handleDragEnd}
+            >
+                <table className="admin-table">
+                    <thead>
+                        <tr>
+                            <th className="drag-handle-cell"></th>
+                            <th>Code</th><th>Title</th><th>Paper</th>
+                            <th>Active</th><th>Questions</th><th></th>
                         </tr>
-                    ) : (
-                        <tr key={t.id} className={!t.active ? 'inactive-row' : ''}>
-                            <td>{t.code}</td>
-                            <td>{t.title}</td>
-                            <td>{t.paper}</td>
-                            <td>{t.sort_order}</td>
-                            <td>{t.active ? 'Yes' : 'No'}</td>
-                            <td>{t.question_count}</td>
-                            <td><button type="button" onClick={() => setEditing(t.id)}>Edit</button></td>
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <SortableContext
+                        items={topics.map((t) => t.id)}
+                        strategy={verticalListSortingStrategy}
+                    >
+                        <tbody>
+                            {topics.map((t) => (
+                                <SortableRow
+                                    key={t.id}
+                                    topic={t}
+                                    editing={editing === t.id}
+                                    onEditStart={(id) => setEditing(id)}
+                                    onSave={saveEdit}
+                                    onCancel={() => setEditing(null)}
+                                    updateField={updateField}
+                                />
+                            ))}
+                        </tbody>
+                    </SortableContext>
+                </table>
+            </DndContext>
 
             <section className="new-topic">
                 <h2>Add New Topic</h2>
                 <div className="new-topic-form">
-                    <label>Code <input value={newForm.code} onChange={(e) => setNewForm((f) => ({ ...f, code: e.target.value }))} /></label>
-                    <label>Title <input value={newForm.title} onChange={(e) => setNewForm((f) => ({ ...f, title: e.target.value }))} /></label>
+                    <label>Code
+                        <input value={newForm.code} onChange={(e) => setNewForm((f) => ({ ...f, code: e.target.value }))} />
+                    </label>
+                    <label>Title
+                        <input value={newForm.title} onChange={(e) => setNewForm((f) => ({ ...f, title: e.target.value }))} />
+                    </label>
                     <label>Paper
                         <select value={newForm.paper} onChange={(e) => setNewForm((f) => ({ ...f, paper: e.target.value }))}>
                             <option value={1}>1</option>
                             <option value={2}>2</option>
                         </select>
                     </label>
-                    <label>Sort order <input type="number" value={newForm.sort_order}
-                        onChange={(e) => setNewForm((f) => ({ ...f, sort_order: e.target.value }))} /></label>
                     <button type="button" onClick={createTopic}>Add Topic</button>
                 </div>
             </section>

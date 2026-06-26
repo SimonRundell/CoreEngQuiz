@@ -11,6 +11,7 @@
 
 import { useState } from 'react';
 import OptionButton from './OptionButton';
+import RichHtml     from './RichHtml';
 import client from '../api/client';
 
 /**
@@ -43,12 +44,18 @@ export default function QuestionCard({ question, questionNumber, total, chosen, 
 
             {question.formula_hint && (
                 <div className="formula-box">
-                    <strong>Formula: </strong>{question.formula_hint}
-                    {question.formula_note && <span> — {question.formula_note}</span>}
+                    <span className="formula-kicker">Formula</span>
+                    <RichHtml html={question.formula_hint} />
+                    {question.formula_note && (
+                        <>
+                            <span className="formula-kicker">Note</span>
+                            <RichHtml html={question.formula_note} />
+                        </>
+                    )}
                 </div>
             )}
 
-            <p className="question-text">{question.question_text}</p>
+            <RichHtml html={question.question_text} className="question-text" />
 
             <div className="options-list">
                 {options.map((opt, i) => (
@@ -66,7 +73,7 @@ export default function QuestionCard({ question, questionNumber, total, chosen, 
             </div>
 
             {revealed && question.explanation && (
-                <p className="explanation">{question.explanation}</p>
+                <RichHtml html={question.explanation} className="explanation" />
             )}
 
             {/* Flag control */}

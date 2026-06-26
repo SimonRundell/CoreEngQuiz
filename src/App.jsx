@@ -15,14 +15,17 @@ import Home           from './pages/Home';
 import QuizView       from './components/QuizView';
 import Login          from './pages/admin/Login';
 import Dashboard      from './pages/admin/Dashboard';
-import QuestionEditor from './pages/admin/QuestionEditor';
+import QuestionManager from './pages/admin/QuestionManager';
 import TopicManager   from './pages/admin/TopicManager';
 import FlagReview     from './pages/admin/FlagReview';
 import ConfigEditor   from './pages/admin/ConfigEditor';
+import UserManager    from './pages/admin/UserManager';
 import { useQuiz }    from './hooks/useQuiz';
 import { useTimer }   from './hooks/useTimer';
 import { useSession } from './hooks/useSession';
 import client         from './api/client';
+import AdminNav       from './components/AdminNav';
+import CMFloatAd      from './cmFloatAd';
 import './styles/main.css';
 
 export default function App() {
@@ -87,8 +90,12 @@ export default function App() {
                         <button className="theme-btn" onClick={toggleTheme} type="button" aria-label="Toggle theme">
                             {dark ? '☀ Light' : '☽ Dark'}
                         </button>
+                        <button className="admin-btn" onClick={() => navigate('/admin/login')} type="button" aria-label="Admin login">
+                            &#9881;
+                        </button>
                     </div>
                 </div>
+                <AdminNav />
             </header>
 
             <main className="app-main">
@@ -122,12 +129,14 @@ export default function App() {
                     } />
                     <Route path="/admin/login"     element={<Login />} />
                     <Route path="/admin"           element={<Dashboard />} />
-                    <Route path="/admin/questions" element={<QuestionEditor />} />
+                    <Route path="/admin/questions" element={<QuestionManager />} />
                     <Route path="/admin/topics"    element={<TopicManager />} />
                     <Route path="/admin/flags"     element={<FlagReview />} />
                     <Route path="/admin/config"    element={<ConfigEditor />} />
+                    <Route path="/admin/users"    element={<UserManager />} />
                 </Routes>
             </main>
+            <CMFloatAd />
         </div>
     );
 }

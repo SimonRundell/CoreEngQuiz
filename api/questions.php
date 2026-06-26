@@ -48,7 +48,7 @@ if (isset($_GET['paper'])) {
          WHERE t.paper = ? AND t.active = 1
          GROUP BY t.id
          HAVING cnt > 0
-         ORDER BY t.sort_order, t.id"
+         ORDER BY t.sort_order, t.paper, t.id"
     );
     $topics->execute([$paper]);
     $topics = $topics->fetchAll();

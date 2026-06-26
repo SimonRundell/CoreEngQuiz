@@ -8,6 +8,8 @@
  * @license CC BY-NC-SA 4.0
  */
 
+import RichHtml from './RichHtml';
+
 const LABELS = ['A', 'B', 'C', 'D'];
 
 /**
@@ -29,7 +31,7 @@ export default function ReviewPanel({ questions, chosen }) {
             <h3>Review Wrong Answers ({wrong.length})</h3>
             {wrong.map(({ q, i, c }) => (
                 <div className="review-item" key={i}>
-                    <p className="review-q">{q.question_text}</p>
+                    <RichHtml html={q.question_text} className="review-q" />
                     <p>
                         <span className="review-wrong">
                             Your answer: {LABELS[c]}. {opts(q)[c]}
@@ -41,7 +43,7 @@ export default function ReviewPanel({ questions, chosen }) {
                         </span>
                     </p>
                     {q.explanation && (
-                        <p className="review-explanation">{q.explanation}</p>
+                        <RichHtml html={q.explanation} className="review-explanation" />
                     )}
                 </div>
             ))}
