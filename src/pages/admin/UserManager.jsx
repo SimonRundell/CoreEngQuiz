@@ -11,6 +11,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import client from '../../api/client';
+import { useConfirm } from '../../components/ConfirmModal';
 
 export default function UserManager() {
     const [users,     setUsers]     = useState([]);
@@ -27,6 +28,7 @@ export default function UserManager() {
     const [newError, setNewError] = useState('');
 
     const navigate = useNavigate();
+    const { confirmModal, confirm } = useConfirm();
 
     const loadUsers = useCallback(async () => {
         try {
@@ -93,7 +95,7 @@ export default function UserManager() {
     }
 
     async function handleDelete(id, username) {
-        if (!window.confirm(`Delete admin "${username}"? This cannot be undone.`)) return;
+        if (!await confirm(`Delete admin "${username}"? This cannot be undone.`, 'Delete')) return;
         try {
             await client.delete(`/admin/users.php?id=${id}`);
             flash(`Admin "${username}" deleted`);
@@ -105,6 +107,7 @@ export default function UserManager() {
 
     return (
         <div className="admin-page">
+            {confirmModal}
             <h1>User Management</h1>
 
             {pageError && <p className="form-error">{pageError}</p>}

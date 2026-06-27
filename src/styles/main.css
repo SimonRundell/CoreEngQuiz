@@ -629,6 +629,37 @@ button { cursor: pointer; font-family: var(--font-body); }
 .rich-editor-content .ProseMirror sup,
 .rich-editor-content .ProseMirror sub      { font-size: 0.72em; }
 
+/* ── Confirm modal ───────────────────────────────────────────────────── */
+.confirm-overlay {
+    position:        fixed;
+    inset:           0;
+    background:      rgba(0,0,0,0.55);
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    z-index:         600;
+    padding:         1rem;
+}
+.confirm-box {
+    background:    var(--card-bg);
+    border:        1px solid var(--card-border);
+    border-radius: var(--radius-card);
+    width:         min(420px, 92vw);
+    padding:       2rem 1.8rem 1.5rem;
+    box-shadow:    0 20px 60px rgba(0,0,0,0.4);
+}
+.confirm-message {
+    margin:      0 0 1.5rem;
+    font-size:   1rem;
+    line-height: 1.5;
+    color:       var(--text);
+}
+.confirm-actions {
+    display:         flex;
+    justify-content: flex-end;
+    gap:             0.75rem;
+}
+
 /* ── Rich text dialog (modal) ────────────────────────────────────────── */
 .rich-dialog-overlay {
     position:        fixed;
@@ -784,7 +815,27 @@ button { cursor: pointer; font-family: var(--font-body); }
     font-weight:   600;
     font-size:     0.88rem;
 }
-.danger-btn { background: var(--danger) !important; color: #fff !important; border-color: var(--danger) !important; }
+.danger-btn {
+    padding:       8px 16px;
+    border-radius: var(--radius-btn);
+    border:        1px solid var(--danger);
+    background:    var(--danger);
+    color:         #fff;
+    font-weight:   600;
+    font-size:     0.88rem;
+    cursor:        pointer;
+}
+.btn-secondary {
+    padding:       8px 16px;
+    border-radius: var(--radius-btn);
+    border:        1px solid var(--card-border);
+    background:    transparent;
+    color:         var(--text);
+    font-weight:   600;
+    font-size:     0.88rem;
+    cursor:        pointer;
+}
+.btn-secondary:hover { background: var(--card-border); }
 
 .editor-preview {
     flex:          1;
@@ -972,6 +1023,18 @@ button { cursor: pointer; font-family: var(--font-body); }
     cursor:        pointer;
 }
 .reactivate-btn:hover { background: rgba(22,163,74,0.2); }
+
+.delete-btn {
+    padding:       8px 16px;
+    border-radius: var(--radius-btn);
+    border:        1px solid var(--danger);
+    background:    transparent;
+    color:         var(--danger);
+    font-weight:   600;
+    font-size:     0.88rem;
+    cursor:        pointer;
+}
+.delete-btn:hover { background: var(--danger); color: #fff; }
 
 @media (max-width: 860px) {
     .qmgr-layout   { flex-direction: column; }

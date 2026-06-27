@@ -1,7 +1,4 @@
-# Deny direct browser access to config and seed files
+# Deny direct browser access to config files
 <Files ".config.json">
     Require all denied
 </Files>
-<Directory "seed">
-    Require all denied
-</Directory>

@@ -17,6 +17,7 @@ import { useNavigate }         from 'react-router-dom';
 import client                  from '../../api/client';
 import RichTextDialog          from '../../components/RichTextDialog';
 import RichHtml                from '../../components/RichHtml';
+import { useConfirm }          from '../../components/ConfirmModal';
 
 const ANSWER_LABELS = ['A', 'B', 'C', 'D'];
 
@@ -87,6 +88,7 @@ export default function QuestionEditor() {
     const [success,   setSuccess]   = useState('');
     const [showPreview, setPreview] = useState(false);
     const navigate = useNavigate();
+    const { confirmModal, confirm } = useConfirm();
 
     useEffect(() => {
         client.get('/admin/topics.php')
@@ -168,7 +170,7 @@ export default function QuestionEditor() {
 
     async function softDelete() {
         if (!form.id) return;
-        if (!confirm('Deactivate this question?')) return;
+        if (!await confirm('Deactivate this question?', 'Deactivate')) return;
         try {
             await client.delete(`/admin/questions.php?id=${form.id}`);
             setSuccess('Question deactivated.');
@@ -184,6 +186,7 @@ export default function QuestionEditor() {
 
     return (
         <div className="admin-editor">
+            {confirmModal}
             <h1>Question Editor</h1>
 
             <div className="editor-layout">

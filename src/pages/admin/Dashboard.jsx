@@ -20,8 +20,8 @@ export default function Dashboard() {
             client.get('/admin/topics.php'),
             client.get('/admin/flags.php'),
         ]).then(([t, f]) => {
-            setTopics(t.data);
-            setFlags(f.data);
+            setTopics(Array.isArray(t.data) ? t.data : []);
+            setFlags(Array.isArray(f.data) ? f.data : []);
         }).catch((err) => {
             if (err.response?.status === 401) navigate('/admin/login');
             else setError('Failed to load dashboard data');

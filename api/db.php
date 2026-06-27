@@ -33,11 +33,18 @@ function getDB(): PDO {
     if ($pdo === null) {
         $cfg = getConfig();
         $dsn = "mysql:host={$cfg['db_host']};dbname={$cfg['db_name']};charset=utf8mb4";
-        $pdo = new PDO($dsn, $cfg['db_user'], $cfg['db_pass'], [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-        ]);
+        try {
+            $pdo = new PDO($dsn, $cfg['db_user'], $cfg['db_pass'], [
+                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES   => false,
+            ]);
+        } catch (\PDOException $e) {
+            http_response_code(503);
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['error' => 'Database unavailable', 'detail' => $e->getMessage()]);
+            exit;
+        }
     }
     return $pdo;
 }

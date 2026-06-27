@@ -117,13 +117,13 @@ if ($method === 'PUT') {
     }
 }
 
-// --- DELETE: soft-delete ---
+// --- DELETE: hard delete ---
 if ($method === 'DELETE') {
     $id = (int)($_GET['id'] ?? 0);
     if ($id === 0) {
         jsonResponse(['error' => 'id required'], 400);
     }
-    $stmt = $pdo->prepare("UPDATE questions SET active = 0 WHERE id = ?");
+    $stmt = $pdo->prepare("DELETE FROM questions WHERE id = ?");
     $stmt->execute([$id]);
     jsonResponse(['deleted' => $stmt->rowCount() > 0]);
 }

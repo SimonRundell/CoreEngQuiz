@@ -14,6 +14,7 @@ import { useNavigate }         from 'react-router-dom';
 import client                  from '../../api/client';
 import RichTextDialog          from '../../components/RichTextDialog';
 import RichHtml                from '../../components/RichHtml';
+import { useConfirm }          from '../../components/ConfirmModal';
 
 const ANSWER_LABELS = ['A', 'B', 'C', 'D'];
 
@@ -72,6 +73,7 @@ export default function QuestionManager() {
     const [error,       setError]     = useState('');
     const [success,     setSuccess]   = useState('');
     const navigate = useNavigate();
+    const { confirmModal, confirm } = useConfirm();
 
     useEffect(() => {
         client.get('/admin/topics.php')
@@ -165,10 +167,24 @@ export default function QuestionManager() {
         }
     }
 
+    async function deleteQuestion() {
+        if (!form.id) return;
+        if (!await confirm(`Permanently delete question #${form.id}? This cannot be undone.`, 'Delete')) return;
+        try {
+            await client.delete(`/admin/questions.php?id=${form.id}`);
+            setSuccess('Question deleted.');
+            setForm({ ...BLANK, topic_id: topicId });
+            reloadList();
+        } catch {
+            setError('Delete failed');
+        }
+    }
+
     async function setActive(active) {
         if (!form.id) return;
         const label = active ? 'reactivate' : 'deactivate';
-        if (!confirm(`${label.charAt(0).toUpperCase() + label.slice(1)} this question?`)) return;
+        const capLabel = label.charAt(0).toUpperCase() + label.slice(1);
+        if (!await confirm(`${capLabel} this question?`, capLabel)) return;
         try {
             await client.put(`/admin/questions.php?id=${form.id}`, {
                 topic_id:      Number(form.topic_id),
@@ -204,6 +220,7 @@ export default function QuestionManager() {
 
     return (
         <div className="qmgr-outer">
+            {confirmModal}
             <h1>Question Manager</h1>
 
             <div className="qmgr-layout">
@@ -369,6 +386,9 @@ export default function QuestionManager() {
                                     )}
                                     {form.id && form.active  === 0  && (
                                         <button type="button" className="reactivate-btn" onClick={() => setActive(1)}>Reactivate</button>
+                                    )}
+                                    {form.id && (
+                                        <button type="button" className="delete-btn" onClick={deleteQuestion}>Delete</button>
                                     )}
                                 </div>
                             </div>

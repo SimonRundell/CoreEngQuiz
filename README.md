@@ -2,7 +2,7 @@
 
 A self-hosted multiple-choice quiz application for T Level Level 3 Core Engineering students. It supports both timed practice sessions and mock exam conditions, with a full admin back-end for managing questions, topics, users and exam configuration.
 
-**Version 0.0.1** | June 2026
+**Version 0.0.2** | June 2026
 
 ---
 
@@ -199,17 +199,15 @@ These values are editable through the admin Config page:
 
 ## Running in Development
 
-Two processes are needed: the Vite dev server and the PHP built-in server.
+This project uses [Laragon](https://laragon.org) as its local server. Set Laragon's document root to the project folder (`E:\CoreEngQuiz` or equivalent). Apache serves the PHP API directly at `http://localhost/api/`.
+
+Start Laragon (Apache + MariaDB), then:
 
 ```bash
-# Terminal 1 — PHP API (from project root)
-php -S localhost:8080 -t api
-
-# Terminal 2 — Vite dev server
 npm run dev
 ```
 
-Vite proxies all `/api/*` requests to `localhost:8080`, so there are no CORS issues in development.
+The React app runs on `http://localhost:5173`. API calls use the absolute base URL configured in `.config.json` (`http://localhost/api`), so Apache must be running before starting the dev server.
 
 ### Other scripts
 
@@ -255,6 +253,7 @@ CoreEngQuiz/
 │   │   └── client.js           Axios instance (reads baseURL from .config.json)
 │   ├── components/
 │   │   ├── AdminNav.jsx        Persistent admin navigation bar
+│   │   ├── ConfirmModal.jsx    useConfirm hook — Promise-based confirmation modal
 │   │   ├── CountdownBar.jsx    Exam countdown strip
 │   │   ├── OptionButton.jsx    Multiple-choice option button
 │   │   ├── ProgressBar.jsx     Quiz progress indicator
@@ -371,7 +370,7 @@ All admin endpoints require an active session (HTTP 401 if not authenticated).
 | GET | `/admin/questions.php?topic_id=N` | All questions for topic (inc inactive) |
 | POST | `/admin/questions.php` | Create question |
 | PUT | `/admin/questions.php?id=N` | Update question |
-| DELETE | `/admin/questions.php?id=N` | Soft-delete (sets active=0) |
+| DELETE | `/admin/questions.php?id=N` | Permanently delete question |
 | GET | `/admin/flags.php` | All flagged questions |
 | DELETE | `/admin/flags.php?id=N` | Dismiss flag |
 | GET | `/admin/config.php` | Read all config keys |
@@ -395,7 +394,7 @@ Go to **Questions** in the admin nav. Select a topic from the drop-down; the lef
 
 The four rich-text fields (Question text, Formula hint, Formula note, Explanation) each have a pencil button that opens a TipTap editor dialog. The toolbar supports bold, italic, underline, strikethrough, superscript (x²), subscript (x₂), inline code, paragraph, Heading 2, Heading 3, bullet list, numbered list, undo and redo.
 
-Use **Deactivate** to soft-delete a question (students will not see it) and **Reactivate** to restore it. Questions are never permanently deleted.
+Use **Deactivate** to hide a question from students and **Reactivate** to restore it. Use **Delete** to permanently remove a question from the database. A confirmation dialog is shown before any destructive action.
 
 ### Managing topics
 
@@ -436,11 +435,31 @@ Full licence text: https://creativecommons.org/licenses/by-nc-sa/4.0/
 
 ## Version History
 
+### 0.0.2 — June 2026
+
+#### Bug fixes
+
+- Dashboard no longer crashes when the topics API returns a non-array response
+- Fixed `api/.htaccess` — removed invalid `<Directory>` block (not permitted in `.htaccess` files) that caused a 500 on every API request; seed directory is now protected by its own `api/seed/.htaccess`
+- Database connection errors in `db.php` now return a JSON 503 response with CORS headers intact, rather than an unhandled exception that produced an Apache error page
+
+#### Admin improvements
+
+- Hard delete added to Question Manager — a new **Delete** button permanently removes a question from the database (distinct from **Deactivate**, which soft-hides it)
+- All browser `confirm()` dialogs replaced with a styled modal confirmation dialog (`useConfirm` hook in `src/components/ConfirmModal.jsx`)
+
+#### Development setup
+
+- Development now uses Laragon (Apache on port 80) rather than the PHP built-in server; `vite.config.js` and documentation updated accordingly
+
+---
+
 ### 0.0.1 — June 2026
 
 Initial release. Full student quiz experience and complete admin back-end.
 
-**Student features**
+#### Student features
+
 - Home page with topic cards and paper mock exam options
 - Practice mode and exam mode
 - Countdown bar to Paper 1 and Paper 2 exam dates
@@ -452,7 +471,8 @@ Initial release. Full student quiz experience and complete admin back-end.
 - Wrong-answer review panel
 - Question flagging
 
-**Admin features**
+#### Admin features
+
 - Gear-icon login button in site header
 - Sticky admin navigation bar (all sections + logout)
 - Dashboard with live stats

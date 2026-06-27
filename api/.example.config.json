@@ -1,0 +1,7 @@
+{
+    "db_host": "localhost",
+    "db_name": "tlevel_quiz",
+    "db_user": "USERNAME",
+    "db_pass": "PASSWORD",
+    "session_name": "RANDOM_SESSION_NAME"
+}
