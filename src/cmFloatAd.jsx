@@ -2,7 +2,7 @@
  * CMFloatAd
  *
  * Floating branding banner – hover to expand full contact details.
- * Modified for Exeter College by Simon Rundell, Dept of ITDD.
+ * Modified for Exeter College by Simon Rundell, Dept of Cybersecurity and Digital Technologies.
  *
  * @param {Object} props
  * @param {string} [props.color='#334155']   - Text / icon colour.
@@ -45,7 +45,7 @@ export default function CMFloatAd({ color = '#334155', bgColor = '#f8fafc' }) {
             <a href="mailto:ryanmay@exe-coll.ac.uk" className="cm-float-ad__link">
               ryanmay@exe-coll.ac.uk
             </a>
-            &nbsp;|&nbsp;Created by Simon Rundell, Dept of ITDD,
+            &nbsp;|&nbsp;Created by Simon Rundell, Dept of Cybersecurity and Digital Technologies,
             Exeter College | eMail:{' '}
             <a href="mailto:simonrundell@exe-coll.ac.uk" className="cm-float-ad__link">
               simonrundell@exe-coll.ac.uk
@@ -60,7 +60,7 @@ export default function CMFloatAd({ color = '#334155', bgColor = '#f8fafc' }) {
             <a href="mailto:ryanmay@exe-coll.ac.uk" className="cm-float-ad__link">
               ryanmay@exe-coll.ac.uk
             </a>
-            <span>Created by Simon Rundell, Dept of ITDD, </span>
+            <span>Created by Simon Rundell, Dept of Cybersecurity and Digital Technologies, </span>
             <a href="mailto:simonrundell@exe-coll.ac.uk" className="cm-float-ad__link">
               simonrundell@exe-coll.ac.uk
             </a>
